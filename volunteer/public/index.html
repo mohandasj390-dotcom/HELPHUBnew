@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HELPHUB — One Request. Many Helping Hands.</title>
+  <meta name="description"
+    content="HELPHUB connects people and organizations needing assistance with student volunteers. Real-time alert, safety confirmation, team coordination, and social impact platform.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/certificate.css">
+
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js for Impact Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <!-- =========================================================
+       1. NAVIGATION BAR
+       ========================================================= -->
+  <nav class="navbar" id="main-navbar">
+    <div class="nav-brand">
+      <span>🤝 HELPHUB</span>
+      <span class="brand-badge">VOLUNTEER PLATFORM</span>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-section="home">Home</a></li>
+      <li><a href="#" class="nav-link" data-section="requests">Find Help</a></li>
+      <li><a href="#" class="nav-link" data-section="map">Location & Map</a></li>
+      <li><a href="#" class="nav-link" data-section="impact">Impact Analytics</a></li>
+      <li><a href="#" class="nav-link" data-section="college">College Drives</a></li>
+      <li><a href="#" class="nav-link" data-section="admin">Admin Panel</a></li>
+    </ul>
+
+    <div class="nav-right">
+      <!-- 🚨 Emergency Quick Action Button -->
+      <button class="emergency-top-btn" onclick="App.triggerEmergencyModal()">
+        🚨 EMERGENCY HELP
+      </button>
+
+      <!-- 🔔 Notification Bell -->
+      <button class="notif-btn" id="notif-btn" title="Real-time Notifications">
+        🔔
+        <span class="notif-badge" id="notif-count-badge" style="display:none;">0</span>
+      </button>
+
+      <!-- 👤 Volunteer Profile Button -->
+      <button class="user-profile-btn" onclick="App.showSection('profile')" title="View Student / Volunteer Profile">
+        <div style="position:relative; display:inline-block;">
+          <img src="img/avatar-male.svg" alt="Profile"
+            class="user-avatar" id="nav-user-avatar" style="object-fit:cover;">
+          <span id="nav-user-gender-badge" style="position:absolute; bottom:-2px; right:-2px; background:#2563eb; color:white; font-size:0.65rem; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border:1.5px solid white;">&#9794;</span>
+        </div>
+        <div class="user-info-text">
+          <div class="user-name" id="nav-user-name">Mohan Das</div>
+          <div class="user-role" id="nav-user-role-wrap"><span id="nav-user-role">Student Volunteer</span> • <span id="nav-user-gender" style="font-weight:700; color:#2563eb;">♂ Male</span></div>
+        </div>
+      </button>
+
+      <button class="mobile-menu-btn"
+        onclick="document.querySelector('.nav-links').classList.toggle('active')">☰</button>
+    </div>
+  </nav>
+
+  <!-- Notification Drawer -->
+  <div class="notif-drawer" id="notif-drawer">
+    <div class="notif-header">
+      <h4 style="font-size:1rem; font-weight:800;">Real-Time Notifications</h4>
+      <button style="background:none; color:var(--primary); font-weight:700; font-size:0.8rem;"
+        onclick="NotificationEngine.markAllRead()">Mark All Read</button>
+    </div>
+    <div id="notif-list-container">
+      <!-- Dynamic Notifications -->
+    </div>
+  </div>
+
+  <!-- =========================================================
+       2. LOGIN PORTAL SECTION (INITIAL ACCESS PAGE)
+       ========================================================= -->
+  <section class="app-section" id="section-login-portal">
+    <div class="welcome-hero-container">
+      <div class="welcome-box">
+        <div class="welcome-header">
+          <div class="welcome-brand">🤝 HELPHUB PLATFORM</div>
+          <h1 class="welcome-title">Welcome to HELPHUB</h1>
+          <p class="welcome-subtitle">
+            “One Request. Many Helping Hands.” — Log in to access volunteer dashboard, help requests, maps & impact
+            statistics.
+          </p>
+        </div>
+
+        <div class="welcome-auth-card">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid #e2e8f0; padding-bottom:1rem;">
+            <h3 style="font-size:1.3rem; color:#0f172a; margin:0;" id="portal-title">🔐 Student / Volunteer Portal Login
+            </h3>
+            <span style="font-size:0.85rem; color:#64748b; font-weight:600;">Authentication & Profile Access</span>
+          </div>
+
+          <form id="student-volunteer-login-form" onsubmit="event.preventDefault(); App.performPortalLogin();"
+            autocomplete="off">
+            <!-- 1. Full Name (Registration only - hidden in login mode) -->
+            <div class="form-group" id="portal-name-group" style="display:none;">
+              <label>Full Name <span style="color:#ef4444;">*</span></label>
+              <input type="text" id="portal-name" class="form-control" placeholder="Enter your full name"
+                autocomplete="off">
+            </div>
+
+            <!-- 2. Select Role (Registration only - hidden in login mode) -->
+            <div class="form-group" id="portal-role-group" style="display:none;">
+              <label>Select Role <span style="color:#ef4444;">*</span></label>
+              <select id="portal-role" class="form-control">
+                <option value="Student">Student</option>
+                <option value="Volunteer" selected>Volunteer</option>
+              </select>
+            </div>
+
+            <!-- 3. Phone Number (Registration only - hidden in login mode) -->
+            <div class="form-group" id="portal-phone-group" style="display:none;">
+              <label>Phone Number <span style="color:#ef4444;">*</span></label>
+              <input type="tel" id="portal-phone" pattern="[0-9]{10}" class="form-control"
+                placeholder="Enter your phone number" autocomplete="off">
+            </div>
+
+            <!-- 3b. Gender (Registration only - hidden in login mode) -->
+            <div class="form-group" id="portal-gender-group" style="display:none;">
+              <label>Gender <span style="color:#ef4444;">*</span></label>
+              <select id="portal-gender" class="form-control" required>
+                <option value="">Select Male / Female</option>
+                <option value="Male">&#9794; Male</option>
+                <option value="Female">&#9792; Female</option>
+              </select>
+            </div>
+
+            <!-- 4. Enter Your Email Address -->
+            <div class="form-group">
+              <label>Enter Your Email Address <span style="color:#ef4444;">*</span></label>
+              <input type="email" id="portal-email" class="form-control" placeholder="Enter your email address"
+                autocomplete="off" required>
+            </div>
+
+            <!-- 5. Password -->
+            <div class="form-group">
+              <label>Password <span style="color:#ef4444;">*</span></label>
+              <input type="password" id="portal-password" class="form-control" placeholder="Enter your password"
+                autocomplete="new-password" required>
+            </div>
+
+            <!-- Inline Error / Status Message Banner -->
+            <div id="portal-auth-error"
+              style="display:none; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.75rem; color:#dc2626; font-size:0.9rem; font-weight:600;">
+              &#9888; <span id="portal-auth-error-msg"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="portal-submit-btn"
+              style="width:100%; font-size:1.1rem; padding:0.95rem; margin-top:0.5rem;">
+              🚀 LOG IN & ENTER PLATFORM
+            </button>
+          </form>
+
+          <!-- Mode Toggle Link -->
+          <div style="text-align:center; margin-top:1.25rem; padding-top:1rem; border-top:1px solid #e2e8f0;">
+            <p style="font-size:0.88rem; color:#64748b; margin:0;">
+              <span id="portal-toggle-hint">Don&#x27;t have an account?</span>
+              <button id="portal-toggle-btn" onclick="App.togglePortalMode()"
+                style="background:none; border:none; color:#2563eb; font-weight:700; font-size:0.88rem; cursor:pointer; padding:0 0.25rem; text-decoration:underline;">Create
+                an account / Register</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       3. SECTION: HOME & HERO LANDING PAGE
+       ========================================================= -->
+  <section class="app-section" id="section-home">
+    <div class="hero">
+      <div class="hero-container">
+        <div class="hero-left">
+          <div class="hero-tag">
+            <span>✨ Real-Time Volunteer Coordination Platform</span>
+          </div>
+
+          <h1 class="hero-title">HELPHUB</h1>
+
+          <div class="hero-subtitle-primary">
+            “One Request. Many Helping Hands.”
+          </div>
+
+          <p class="hero-desc">
+            Connect people and organizations who need help with students and volunteers who are ready to make a
+            difference in society.
+          </p>
+
+          <div class="hero-stats-row" style="margin-top: 2rem; padding-top: 2rem; flex-wrap: wrap; gap: 1.5rem 2rem;">
+            <div class="hero-stat-item">
+              <div class="stat-val" id="home-stat-volunteers">300+</div>
+              <div class="stat-lbl">Active Volunteers</div>
+            </div>
+            <div class="hero-stat-item">
+              <div class="stat-val" id="home-stat-requests">89</div>
+              <div class="stat-lbl">Help Requests Fulfilled</div>
+            </div>
+            <div class="hero-stat-item">
+              <div class="stat-val" id="home-stat-hours">24/7</div>
+              <div class="stat-lbl">Service Hours Logged</div>
+            </div>
+            <div class="hero-stat-item">
+              <div class="stat-val" id="home-stat-people">200</div>
+              <div class="stat-lbl">People Helped</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visually Attractive Workflow Illustration Card -->
+        <div class="hero-right">
+          <div class="workflow-illustration-card">
+            <div class="illustration-header">
+              ⚡ COMPLETE HELP WORKFLOW
+            </div>
+
+            <div class="workflow-flow">
+              <div class="flow-node">
+                <div class="flow-icon" style="background:#fee2e2; color:#ef4444;">👤</div>
+                <div class="flow-info">
+                  <h4>1. Person in Need</h4>
+                  <p>Submits request with location & priority</p>
+                </div>
+              </div>
+
+              <div class="flow-node">
+                <div class="flow-icon" style="background:#fef3c7; color:#d97706;">🚨</div>
+                <div class="flow-info">
+                  <h4>2. Volunteer Alert</h4>
+                  <p>Real-time notification to nearby students</p>
+                </div>
+              </div>
+
+              <div class="flow-node">
+                <div class="flow-icon" style="background:#eff6ff; color:#2563eb;">🤝</div>
+                <div class="flow-info">
+                  <h4>3. Team Assembly</h4>
+                  <p>Automatic volunteer team formation & route mapping</p>
+                </div>
+              </div>
+
+              <div class="flow-node">
+                <div class="flow-icon" style="background:#ecfdf5; color:#10b981;">🟢</div>
+                <div class="flow-info">
+                  <h4>4. Safety Notification</h4>
+                  <p>Volunteer confirms "I HAVE ARRIVED SAFELY"</p>
+                </div>
+              </div>
+
+              <div class="flow-node">
+                <div class="flow-icon" style="background:#f5f3ff; color:#8b5cf6;">🏆</div>
+                <div class="flow-info">
+                  <h4>5. Impact & Rewards</h4>
+                  <p>Points, badges, and verified certificates</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Categories Showcase -->
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Help Categories</h2>
+          <p class="section-subtitle">Select a category to request or provide assistance</p>
+        </div>
+      </div>
+
+      <div class="categories-grid">
+        <div class="category-card" onclick="RequestManager.filterAndRender('Medical Support')">
+          <div class="category-icon">🏥</div>
+          <div class="category-name">Medical Support</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Blood Donation')">
+          <div class="category-icon">🩸</div>
+          <div class="category-name">Blood Donation</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Elderly Assistance')">
+          <div class="category-icon">👴</div>
+          <div class="category-name">Elderly Assistance</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Education Support')">
+          <div class="category-icon">📚</div>
+          <div class="category-name">Education Support</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Food Distribution')">
+          <div class="category-icon">🍱</div>
+          <div class="category-name">Food Distribution</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Environmental Activities')">
+          <div class="category-icon">🌱</div>
+          <div class="category-name">Environmental</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Accessibility Assistance')">
+          <div class="category-icon">♿</div>
+          <div class="category-name">Accessibility</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Emergency Support')">
+          <div class="category-icon">🚨</div>
+          <div class="category-name">Emergency</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('College Activities')">
+          <div class="category-icon">🎓</div>
+          <div class="category-name">College Activities</div>
+        </div>
+        <div class="category-card" onclick="RequestManager.filterAndRender('Other Social Help')">
+          <div class="category-icon">🤝</div>
+          <div class="category-name">Other Social Help</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       4. SECTION: REQUESTS & VOLUNTEER DASHBOARD
+       ========================================================= -->
+  <section class="app-section" id="section-requests" style="display:none;">
+    <div class="main-wrapper">
+
+      <!-- Active Mission & Safety Banner Container -->
+      <div id="active-mission-container" style="display:none;">
+        <!-- Dynamic Active Mission Banner injected via VolunteerManager -->
+      </div>
+
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Active Help Requests</h2>
+          <p class="section-subtitle">Respond to urgent requests near you and earn volunteer points</p>
+        </div>
+        <button class="btn btn-primary" onclick="App.openModal('request-modal')">
+          + Create Help Request
+        </button>
+      </div>
+
+      <div class="filter-toolbar">
+        <div class="filter-tabs">
+          <button class="tab-btn active" onclick="RequestManager.filterAndRender('', this)">All Requests</button>
+          <button class="tab-btn" onclick="RequestManager.filterAndRender('HIGH', this)">High Priority</button>
+          <button class="tab-btn" onclick="RequestManager.filterAndRender('EMERGENCY', this)">🚨 Emergency</button>
+        </div>
+
+        <div class="search-filter-box">
+          <input type="text" id="search-requests-input" class="search-input"
+            placeholder="Search by title, location, category...">
+        </div>
+      </div>
+
+      <div class="requests-grid" id="requests-grid-container">
+        <!-- Dynamic Request Cards -->
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       4. SECTION: VOLUNTEER PROFILE (AUTHENTICATED USER)
+       ========================================================= -->
+  <section class="app-section" id="section-profile" style="display:none;">
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Student / Volunteer Dashboard</h2>
+          <p class="section-subtitle">Authenticated profile details, academic records, service statistics, and activity
+            credentials</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+          <button class="btn btn-primary" onclick="VolunteerManager.openEditProfileModal()">
+            ✏️ Complete / Edit Profile
+          </button>
+          <button class="btn btn-outline" onclick="CertificateManager.showCertificateModal()">
+            📜 View Certificates
+          </button>
+          <button class="btn btn-outline" style="border-color:#ef4444; color:#ef4444;" onclick="App.logout()">
+            🚪 Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Volunteer Profile Overview Card -->
+      <div class="profile-card-full">
+        <div class="profile-header-flex">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:0.6rem;">
+            <div style="position:relative; display:inline-block;">
+              <img src="img/avatar-male.svg"
+                alt="Volunteer" class="profile-img-large" id="profile-img"
+                style="width:120px; height:120px; border-radius:50%; object-fit:cover; border:3px solid #e2e8f0;">
+              <span id="profile-gender-badge"
+                style="position:absolute; bottom:4px; right:4px; background:#2563eb; color:white; font-size:1rem; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:2px solid white;">&#9794;</span>
+            </div>
+            <button type="button" onclick="VolunteerManager.openChangePhotoDialog()" class="btn btn-outline"
+              style="font-size:0.75rem; color:#2563eb; border-color:#93c5fd; border-radius:20px; padding:0.25rem 0.75rem; cursor:pointer; font-weight:700;">📷 Change Profile Photo</button>
+          </div>
+          <div>
+            <h2 style="font-size:1.85rem; color:#0f172a; margin-bottom:0.25rem;" id="profile-name-text">Student
+              Volunteer</h2>
+            <p style="color:#64748b; font-weight:600; margin-bottom:0.5rem;" id="profile-college-text">
+              <span id="profile-dept-header">Computer Science & Engineering</span> • <span id="profile-year-header">3rd
+                Year</span>
+            </p>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <span
+                style="background:#ecfdf5; color:#10b981; font-size:0.8rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">
+                🟢 VERIFIED ACCOUNT
+              </span>
+              <span
+                style="background:#eff6ff; color:#2563eb; font-size:0.8rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;"
+                id="profile-role-tag">
+                🎓 VOLUNTEER
+              </span>
+              <span
+                style="background:#eff6ff; color:#2563eb; font-size:0.8rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;"
+                id="profile-gender-pill">
+                ♂ MALE
+              </span>
+              <span
+                style="background:#fef3c7; color:#d97706; font-size:0.8rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">
+                ⭐ SAFETY RATING: <span id="profile-rating-val">5.0 / 5.0</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 📈 Profile Completion Status Bar -->
+        <div
+          style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1.25rem; margin-bottom:1.75rem;">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
+            <div style="font-weight:800; font-size:0.95rem; color:#0f172a;">
+              ✨ Profile Completion Status: <span id="profile-completion-pct" style="color:#2563eb;">100%</span>
+            </div>
+            <button class="btn btn-outline"
+              style="padding:0.35rem 0.85rem; font-size:0.8rem; font-weight:700; color:#2563eb; border-color:#93c5fd;"
+              onclick="VolunteerManager.openEditProfileModal()">
+              ✏️ Complete Your Profile
+            </button>
+          </div>
+          <div style="width:100%; height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;">
+            <div id="profile-completion-bar"
+              style="width:100%; height:100%; background:linear-gradient(90deg, #2563eb, #10b981); border-radius:99px; transition:width 0.4s ease;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔒 Read-Only System Statistics Grid -->
+        <h4
+          style="font-size:0.9rem; font-weight:800; margin-bottom:0.75rem; text-transform:uppercase; color:#64748b; letter-spacing:1px;">
+          📊 Service & Activity Statistics (Auto-Calculated)
+        </h4>
+        <div class="profile-stats-grid"
+          style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-bottom:2rem;">
+          <div class="stat-box-modern">
+            <div class="num" id="profile-requests-val">15</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">TOTAL HELP REQUESTS</div>
+          </div>
+          <div class="stat-box-modern">
+            <div class="num" id="profile-acts-val">12</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">COMPLETED HELPS</div>
+          </div>
+          <div class="stat-box-modern">
+            <div class="num" id="profile-hours-val">42.0 hrs</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">VOLUNTEER HOURS</div>
+          </div>
+          <div class="stat-box-modern">
+            <div class="num" id="profile-points-val">850</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">IMPACT POINTS</div>
+          </div>
+          <div class="stat-box-modern">
+            <div class="num" id="profile-drives-val">4</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">COLLEGE DRIVES JOINED</div>
+          </div>
+        </div>
+
+        <!-- Personal & Academic Details Grid -->
+        <div
+          style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+          <!-- 1. Account & Academic Info -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <h4 style="font-size:0.95rem; font-weight:800; color:#0f172a; margin:0;">👤 Account & Academic Details
+              </h4>
+              <button
+                style="background:none; border:none; color:#2563eb; font-size:0.8rem; font-weight:700; cursor:pointer;"
+                onclick="VolunteerManager.openEditProfileModal()">Edit</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.85rem;">
+              <div><strong>Full Name:</strong> <span id="profile-name-val">Student Volunteer</span></div>
+              <div><strong>Role:</strong> <span id="profile-role-val"
+                  style="color:#2563eb; font-weight:700;">Volunteer</span></div>
+              <div><strong>Phone Number:</strong> <span id="profile-phone-val">+91 9876543210</span></div>
+              <div><strong>Email Address:</strong> <span id="profile-email-val">user@campus.edu</span></div>
+              <div><strong>College / Institution:</strong> <span id="profile-college-val">City Tech University</span>
+              </div>
+              <div><strong>Department:</strong> <span id="profile-dept-val">Computer Science & Engineering</span></div>
+              <div><strong>Year of Study:</strong> <span id="profile-year-val">3rd Year</span></div>
+              <div><strong>Gender:</strong> <span id="profile-gender-val" style="color:#2563eb; font-weight:600;">Not
+                  specified</span></div>
+            </div>
+          </div>
+
+          <!-- 2. Skills, Availability & Preferences -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <h4 style="font-size:0.95rem; font-weight:800; color:#0f172a; margin:0;">🛠️ Skills, Availability &
+                Preferences</h4>
+              <button
+                style="background:none; border:none; color:#2563eb; font-size:0.8rem; font-weight:700; cursor:pointer;"
+                onclick="VolunteerManager.openEditProfileModal()">Edit</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.85rem;">
+              <div><strong>Skills:</strong> <span id="profile-skills-val">First Aid, CPR Certified, Emergency
+                  Management, Tutoring</span></div>
+              <div><strong>Areas of Interest:</strong> <span id="profile-interests-val">Healthcare, Education,
+                  Environment</span></div>
+              <div><strong>Availability Schedule:</strong> <span id="profile-avail-val">Weekends, Evenings & On-Call
+                  Emergencies</span></div>
+              <div><strong>Preferred Help Categories:</strong> <span id="profile-categories-val">Medical Support,
+                  Cleanliness, Education</span></div>
+              <div><strong>Location / Area:</strong> <span id="profile-address-val">Room 402, Campus Block B
+                  Hostel</span></div>
+              <div><strong>Emergency Contact:</strong> <span id="profile-emerg-val">+91 9876543299</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Bio / Statement -->
+        <div
+          style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1.25rem; margin-bottom:2rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h4 style="font-size:0.95rem; font-weight:800; color:#0f172a; margin:0;">📝 Student / Volunteer Bio</h4>
+            <button
+              style="background:none; border:none; color:#2563eb; font-size:0.8rem; font-weight:700; cursor:pointer;"
+              onclick="VolunteerManager.openEditProfileModal()">Edit</button>
+          </div>
+          <p id="profile-bio-val" style="font-size:0.9rem; color:#475569; line-height:1.6; margin:0;">
+            Dedicated student volunteer committed to community health drives, senior citizen support, and campus social
+            activities.
+          </p>
+        </div>
+
+        <h4
+          style="font-size:0.9rem; font-weight:800; margin-bottom:1rem; text-transform:uppercase; color:#64748b; letter-spacing:1px;">
+          🏆 EARNED BADGES</h4>
+        <div class="badges-flex">
+          <div class="badge-item">
+            <div class="badge-icon">🏅</div>
+            <div>
+              <div style="font-weight:700; font-size:0.9rem;">First Helper</div>
+              <div style="font-size:0.75rem; color:#64748b;">Completed first activity</div>
+            </div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-icon">🤝</div>
+            <div>
+              <div style="font-weight:700; font-size:0.9rem;">Community Hero</div>
+              <div style="font-size:0.75rem; color:#64748b;">Reached 500+ points</div>
+            </div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-icon">⭐</div>
+            <div>
+              <div style="font-weight:700; font-size:0.9rem;">Active Volunteer</div>
+              <div style="font-size:0.75rem; color:#64748b;">10+ activities</div>
+            </div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-icon">🟢</div>
+            <div>
+              <div style="font-weight:700; font-size:0.9rem;">Safety Guardian</div>
+              <div style="font-size:0.75rem; color:#64748b;">Prompt arrival alerts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       5. SECTION: LOCATION & PUBLIC HEALTH DIRECTORY
+       ========================================================= -->
+  <section class="app-section" id="section-map" style="display:none;">
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Public Health & Blood Centre Directory</h2>
+          <p class="section-subtitle">Real verified Government Hospitals, Blood Centres & Official Donation Camps</p>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <a href="tel:108" class="btn btn-outline" style="border-color:#ef4444; color:#ef4444; font-size:0.85rem;">
+            🚨 Ambulance: 108
+          </a>
+          <a href="tel:104" class="btn btn-outline" style="border-color:#2563eb; color:#2563eb; font-size:0.85rem;">
+            🩸 Blood Helpline: 104
+          </a>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="filter-toolbar" style="margin-bottom:1.5rem;">
+        <div class="filter-tabs" id="map-filter-tabs">
+          <button class="tab-btn active" onclick="MapManager.setFilter('ALL', this)">All Facilities</button>
+          <button class="tab-btn" onclick="MapManager.setFilter('HOSPITAL', this)">🏥 Government Hospitals</button>
+          <button class="tab-btn" onclick="MapManager.setFilter('BLOOD_CENTRE', this)">🩸 Blood Centres</button>
+        </div>
+
+        <div class="search-filter-box">
+          <input type="text" class="search-input" placeholder="Search by facility name, address, area..."
+            oninput="MapManager.setSearch(this.value)">
+        </div>
+      </div>
+
+      <!-- Map & Facilities Directory Grid -->
+      <div
+        style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:1.5rem; align-items:start; margin-bottom:2.5rem;">
+        <!-- Leaflet Map Card -->
+        <div class="map-card" style="margin-bottom:0; position:sticky; top:90px;">
+          <div class="map-header">
+            <div>
+              <strong>📍 Interactive Facility Map:</strong> Real Geo-Coordinates
+            </div>
+            <div style="color:#059669; font-weight:700; font-size:0.85rem;">
+              🟢 Live OpenStreetMap
+            </div>
+          </div>
+          <div id="leaflet-map" style="height:480px; width:100%; border-radius:0 0 16px 16px;"></div>
+        </div>
+
+        <!-- Directory Cards List -->
+        <div>
+          <h3 style="font-size:1.15rem; font-weight:800; color:#0f172a; margin-bottom:0.75rem;">
+            Verified Health Facilities
+          </h3>
+          <div id="facilities-list-container" style="max-height:540px; overflow-y:auto; padding-right:0.35rem;">
+            <!-- Injected via MapManager.renderDirectoryCards() -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Verified Blood Donation Camps Section -->
+      <div style="margin-top:2rem;">
+        <div class="section-header" style="margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1.25rem; font-weight:800; color:#0f172a; margin-bottom:0.25rem;">
+              ⛺ Verified Blood Donation Camps
+            </h3>
+            <p style="color:#64748b; font-size:0.85rem;">
+              Official camps verified with State Blood Transfusion Councils and licensed blood centres.
+            </p>
+          </div>
+        </div>
+
+        <div id="donation-camps-container">
+          <!-- Injected via MapManager.renderCampsSection() -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================
+       6. SECTION: IMPACT ANALYTICS
+       ========================================================= -->
+  <section class="app-section" id="section-impact" style="display:none;">
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Community Impact Dashboard</h2>
+          <p class="section-subtitle">Real-time stats showing how students & volunteers are transforming society</p>
+        </div>
+      </div>
+
+      <div class="impact-stats-grid">
+        <div class="impact-stat-card">
+          <div class="impact-icon-wrapper">👥</div>
+          <div>
+            <div class="stat-val" id="stat-volunteers" style="font-size:2rem; font-weight:800; color:#0f172a;">300+
+            </div>
+            <div style="font-size:0.85rem; color:#64748b; font-weight:600;">Registered Volunteers</div>
+          </div>
+        </div>
+
+        <div class="impact-stat-card">
+          <div class="impact-icon-wrapper" style="background:#fef3c7; color:#d97706;">🆘</div>
+          <div>
+            <div class="stat-val" id="stat-requests" style="font-size:2rem; font-weight:800; color:#0f172a;">89</div>
+            <div style="font-size:0.85rem; color:#64748b; font-weight:600;">Help Requests Resolved</div>
+          </div>
+        </div>
+
+        <div class="impact-stat-card">
+          <div class="impact-icon-wrapper" style="background:#ecfdf5; color:#10b981;">⏰</div>
+          <div>
+            <div class="stat-val" id="stat-hours" style="font-size:2rem; font-weight:800; color:#0f172a;">24/7</div>
+            <div style="font-size:0.85rem; color:#64748b; font-weight:600;">Volunteer Hours Logged</div>
+          </div>
+        </div>
+
+        <div class="impact-stat-card">
+          <div class="impact-icon-wrapper" style="background:#f5f3ff; color:#8b5cf6;">❤️</div>
+          <div>
+            <div class="stat-val" id="stat-people" style="font-size:2rem; font-weight:800; color:#0f172a;">200</div>
+            <div style="font-size:0.85rem; color:#64748b; font-weight:600;">People Helped</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="impact-charts-row">
+        <div class="chart-card">
+          <h3 style="font-size:1.1rem; margin-bottom:1rem;">Help Category Breakdown</h3>
+          <canvas id="impactCategoryChart" height="220"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <h3 style="font-size:1.1rem; margin-bottom:1rem;">Recent Impact Highlights</h3>
+          <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.85rem;">
+            <li style="padding:0.75rem; background:#f8fafc; border-radius:8px; border-left:4px solid #2563eb;">
+              <strong>🤝 Volunteer Support:</strong> 300+ registered volunteers are part of the HELPHUB platform.
+            </li>
+            <li style="padding:0.75rem; background:#f8fafc; border-radius:8px; border-left:4px solid #f59e0b;">
+              <strong>🆘 Help Requests:</strong> 89 help requests have been resolved.
+            </li>
+            <li style="padding:0.75rem; background:#f8fafc; border-radius:8px; border-left:4px solid #8b5cf6;">
+              <strong>❤️ Community Impact:</strong> 200 people have been helped through HELPHUB.
+            </li>
+            <li style="padding:0.75rem; background:#f8fafc; border-radius:8px; border-left:4px solid #10b981;">
+              <strong>⏰ Volunteer Availability:</strong> Volunteer support is available 24/7.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       7. SECTION: COLLEGE DRIVES
+       ========================================================= -->
+  <section class="app-section" id="section-college" style="display:none;">
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">College Volunteer Drives</h2>
+          <p class="section-subtitle">Institutional events for students to earn co-curricular credits</p>
+        </div>
+        <button class="btn btn-primary" onclick="CollegeManager.openCreateDriveModal()">
+          + Create College Drive
+        </button>
+      </div>
+
+      <div class="requests-grid" id="college-events-grid">
+        <!-- Dynamic College Drives -->
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       8. SECTION: ADMIN PANEL
+       ========================================================= -->
+  <section class="app-section" id="section-admin" style="display:none;">
+    <div class="main-wrapper">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Admin Management Dashboard</h2>
+          <p class="section-subtitle">System metrics, active requests oversight, and volunteer database</p>
+        </div>
+        <button class="btn btn-outline" style="border-color:#ef4444; color:#ef4444;" onclick="AdminManager.lockAdmin()">
+          🔒 Lock & Exit Admin
+        </button>
+      </div>
+
+      <div class="impact-stats-grid" style="margin-bottom:2rem;">
+        <div class="impact-stat-card">
+          <div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:700;">TOTAL USERS</div>
+            <div style="font-size:1.8rem; font-weight:800;" id="admin-total-users">127</div>
+          </div>
+        </div>
+        <div class="impact-stat-card">
+          <div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:700;">ACTIVE VOLUNTEERS</div>
+            <div style="font-size:1.8rem; font-weight:800;" id="admin-active-vol">89</div>
+          </div>
+        </div>
+        <div class="impact-stat-card">
+          <div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:700;">ACTIVE REQUESTS</div>
+            <div style="font-size:1.8rem; font-weight:800;" id="admin-active-req">4</div>
+          </div>
+        </div>
+        <div class="impact-stat-card">
+          <div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:700;">COMPLETED REQUESTS</div>
+            <div style="font-size:1.8rem; font-weight:800;" id="admin-comp-req">498</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 👥 REGISTERED MEMBERS SECTION -->
+      <div style="margin-bottom:2.5rem;">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h3 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin:0 0 0.25rem 0;">👥 Registered Members &
+              Directory</h3>
+            <p style="color:#64748b; font-size:0.88rem; margin:0;">Real-time database of authenticated student and
+              volunteer members</p>
+          </div>
+          <button class="btn btn-outline" style="font-size:0.85rem; padding:0.4rem 0.85rem;"
+            onclick="AdminManager.fetchMembers()">
+            🔄 Refresh Members
+          </button>
+        </div>
+
+        <!-- 4 Summary Counts -->
+        <div class="impact-stats-grid" style="margin-bottom:1.5rem;">
+          <div class="impact-stat-card" style="border-left:4px solid #2563eb;">
+            <div>
+              <div style="font-size:0.75rem; color:#64748b; font-weight:800; letter-spacing:0.5px;">TOTAL MEMBERS</div>
+              <div style="font-size:1.8rem; font-weight:800; color:#0f172a;" id="admin-total-members">0</div>
+            </div>
+          </div>
+          <div class="impact-stat-card" style="border-left:4px solid #0d9488;">
+            <div>
+              <div style="font-size:0.75rem; color:#64748b; font-weight:800; letter-spacing:0.5px;">TOTAL STUDENTS</div>
+              <div style="font-size:1.8rem; font-weight:800; color:#0d9488;" id="admin-total-students">0</div>
+            </div>
+          </div>
+          <div class="impact-stat-card" style="border-left:4px solid #ea580c;">
+            <div>
+              <div style="font-size:0.75rem; color:#64748b; font-weight:800; letter-spacing:0.5px;">TOTAL VOLUNTEERS
+              </div>
+              <div style="font-size:1.8rem; font-weight:800; color:#ea580c;" id="admin-total-volunteers">0</div>
+            </div>
+          </div>
+          <div class="impact-stat-card" style="border-left:4px solid #10b981;">
+            <div>
+              <div style="font-size:0.75rem; color:#64748b; font-weight:800; letter-spacing:0.5px;">CURRENTLY LOGGED-IN
+                USERS</div>
+              <div style="font-size:1.8rem; font-weight:800; color:#10b981;" id="admin-loggedin-users">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Member Table -->
+        <div class="chart-card" style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.88rem; min-width:850px;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; color:#475569;">
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Member ID</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Name</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Email</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Phone</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Role</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Last Login</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800;">Status</th>
+                <th style="padding:0.85rem 0.75rem; font-weight:800; text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-members-table-body">
+              <!-- Dynamic Member Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ALL SYSTEM REQUESTS AUDIT -->
+      <div class="chart-card">
+        <h3 style="font-size:1.1rem; margin-bottom:1rem;">All System Requests Audit</h3>
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
+          <thead>
+            <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+              <th style="padding:0.75rem;">ID</th>
+              <th style="padding:0.75rem;">Title</th>
+              <th style="padding:0.75rem;">Category</th>
+              <th style="padding:0.75rem;">Location</th>
+              <th style="padding:0.75rem;">Priority</th>
+              <th style="padding:0.75rem;">Status</th>
+              <th style="padding:0.75rem; text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-requests-table-body">
+            <!-- Dynamic Admin Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       MODALS & DIALOGS
+       ========================================================= -->
+
+  <!-- 1. CREATE HELP REQUEST MODAL -->
+  <div class="modal-overlay" id="request-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="App.closeModal('request-modal')">✕</button>
+      <h2 style="font-size:1.5rem; margin-bottom:0.5rem; color:#0f172a;">🆘 Create Help Request</h2>
+      <p style="color:#64748b; font-size:0.9rem; margin-bottom:1.5rem;">Fill out the details below. Nearby volunteers
+        will be alerted immediately.</p>
+
+      <form id="create-request-form">
+        <div class="form-group">
+          <label>Your Name / Organization</label>
+          <input type="text" name="requester_name" class="form-control" value="Priya Sharma (Sunshine NGO)" required>
+        </div>
+
+        <div class="form-group">
+          <label>Contact Phone Number</label>
+          <input type="tel" name="contact_number" class="form-control" value="+91 9876543214" required>
+        </div>
+
+        <div class="form-group">
+          <label>Help Category</label>
+          <select name="category" class="form-control" required>
+            <option value="Medical Support">🏥 Medical Support</option>
+            <option value="Blood Donation">🩸 Blood Donation</option>
+            <option value="Elderly Assistance">👴 Elderly Assistance</option>
+            <option value="Education Support">📚 Education Support</option>
+            <option value="Food Distribution">🍱 Food Distribution</option>
+            <option value="Environmental Activities">🌱 Environmental Activities</option>
+            <option value="Accessibility Assistance">♿ Accessibility Assistance</option>
+            <option value="Emergency Support">🚨 Emergency Support</option>
+            <option value="College Activities">🎓 College Activities</option>
+            <option value="Other Social Help">🤝 Other Social Help</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Title of Help Request</label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. Medical Assistance Needed at Camp"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label>Detailed Description</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Describe the assistance needed..."
+            required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Location Landmark / Address</label>
+          <input type="text" name="location_name" class="form-control" placeholder="e.g. Campus Health Center Gate"
+            required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Volunteers Needed</label>
+            <input type="number" name="volunteers_needed" class="form-control" value="4" min="1" max="50" required>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select name="priority" class="form-control" required>
+              <option value="NORMAL">NORMAL</option>
+              <option value="HIGH" selected>HIGH</option>
+              <option value="EMERGENCY">🚨 EMERGENCY</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="request_date" class="form-control" value="2026-10-07" required>
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" name="request_time" class="form-control" value="18:30" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem; font-size:1.05rem;">
+          🚀 SUBMIT HELP REQUEST & ALERT VOLUNTEERS
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. EMERGENCY HELP MODAL -->
+  <div class="modal-overlay" id="emergency-modal">
+    <div class="modal-card" style="border:2px solid #ef4444;">
+      <button class="modal-close-btn" onclick="App.closeModal('emergency-modal')">✕</button>
+      <h2 style="font-size:1.6rem; color:#ef4444; margin-bottom:0.5rem;">🚨 EMERGENCY HELP REQUEST</h2>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        This will trigger a HIGH-PRIORITY EMERGENCY BROADCAST to all nearby volunteers immediately.
+      </p>
+
+      <form onsubmit="event.preventDefault(); App.handleEmergencySubmit(this);">
+        <div class="form-group">
+          <label>Emergency Location</label>
+          <input type="text" name="location_name" class="form-control" placeholder="Exact Location / Landmark" required>
+        </div>
+
+        <div class="form-group">
+          <label>Type of Emergency</label>
+          <select name="category" class="form-control" required>
+            <option value="Medical Support">🏥 Urgent Medical Emergency</option>
+            <option value="Blood Donation">🩸 Emergency Blood Requirement</option>
+            <option value="Emergency Support">🚨 General Emergency Rescue</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Emergency Details</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Briefly describe the urgent crisis..."
+            required></textarea>
+        </div>
+
+        <div
+          style="background:#fef2f2; border:1px solid #fca5a5; border-radius:8px; padding:0.85rem; font-size:0.8rem; color:#991b1b; margin-bottom:1rem;">
+          <strong>⚠️ SAFETY WARNING:</strong> If this is a life-threatening medical emergency, crime in progress, or
+          fire, please call professional emergency services (<strong>112 / 108</strong>) immediately alongside posting
+          here.
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; background:#ef4444; border:none;">
+          🚨 DISPATCH EMERGENCY BROADCAST NOW
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. CREATE COLLEGE EVENT MODAL (Admin Controlled) -->
+  <div class="modal-overlay" id="college-event-modal">
+    <div class="modal-card" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('college-event-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#eff6ff; color:#2563eb; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">🔒
+          ADMIN ACCESS</span>
+        <h2 style="font-size:1.5rem; color:#0f172a; margin:0;">🎓 Create College Volunteer Drive</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Fill in the official drive details below. Required fields are marked with <span
+          style="color:#ef4444; font-weight:bold;">*</span>.
+      </p>
+
+      <div id="college-drive-validation-error"
+        style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; margin-bottom:1rem;">
+      </div>
+
+      <form id="create-college-drive-form" onsubmit="event.preventDefault(); CollegeManager.createEvent(this);">
+        <!-- 1 & 2. College Name & Title -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>College / Organization Name <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="organization_name" class="form-control" value="City Tech University"
+              placeholder="e.g. City Tech University" required>
+          </div>
+          <div class="form-group">
+            <label>Drive Title <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Campus Health & Hygiene Drive"
+              required>
+          </div>
+        </div>
+
+        <!-- 3. Drive Description -->
+        <div class="form-group">
+          <label>Drive Description <span style="color:#ef4444;">*</span></label>
+          <textarea name="description" class="form-control" rows="3"
+            placeholder="Describe the objectives and student responsibilities..." required></textarea>
+        </div>
+
+        <!-- 4, 5, 6. Date, Start Time, End Time -->
+        <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Drive Date <span style="color:#ef4444;">*</span></label>
+            <input type="date" name="event_date" id="drive-event-date" class="form-control" min="2026-10-07"
+              value="2026-10-14" required>
+          </div>
+          <div class="form-group">
+            <label>Start Time <span style="color:#ef4444;">*</span></label>
+            <input type="time" name="start_time" class="form-control" value="09:30" required>
+          </div>
+          <div class="form-group">
+            <label>End Time <span style="color:#ef4444;">*</span></label>
+            <input type="time" name="end_time" class="form-control" value="13:30" required>
+          </div>
+        </div>
+
+        <!-- 7 & 8. Venue & Category -->
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Location / Venue <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="location" class="form-control" value="College Main Hall"
+              placeholder="e.g. College Main Hall" required>
+          </div>
+          <div class="form-group">
+            <label>Drive Category <span style="color:#ef4444;">*</span></label>
+            <select name="category" class="form-control" required>
+              <option value="Blood Donation">🩸 Blood Donation</option>
+              <option value="Cleanliness" selected>🧹 Cleanliness</option>
+              <option value="Health Camp">🏥 Health Camp</option>
+              <option value="Environmental">🌱 Environmental</option>
+              <option value="Education">📚 Education</option>
+              <option value="Other">🤝 Other</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 9, 10, 11. Capacity, Organizer Name, Contact Info -->
+        <div style="display:grid; grid-template-columns:1fr 1.2fr 1.2fr; gap:1rem;">
+          <div class="form-group">
+            <label>Volunteer Capacity <span style="color:#ef4444;">*</span></label>
+            <input type="number" name="volunteers_capacity" class="form-control" min="1" max="500" value="50" required>
+          </div>
+          <div class="form-group">
+            <label>Organizer Name <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="organizer_name" class="form-control" value="Prof. K. Ramesh (NSS Coordinator)"
+              placeholder="e.g. Prof. K. Ramesh" required>
+          </div>
+          <div class="form-group">
+            <label>Contact Information <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="contact_info" class="form-control" value="+91 9876543210"
+              placeholder="+91 9876543210 / info@campus.edu" required>
+          </div>
+        </div>
+
+        <!-- 12 & 13. Registration Deadline & Status -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Registration Deadline <span style="color:#ef4444;">*</span></label>
+            <input type="date" name="registration_deadline" id="drive-deadline-date" class="form-control"
+              value="2026-10-13" required>
+          </div>
+          <div class="form-group">
+            <label>Drive Status <span style="color:#ef4444;">*</span></label>
+            <select name="status" class="form-control" required>
+              <option value="Upcoming" selected>🔵 Upcoming</option>
+              <option value="Active">🟢 Active</option>
+              <option value="Completed">✅ Completed</option>
+              <option value="Cancelled">❌ Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" style="flex:1;" onclick="App.closeModal('college-event-modal')">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:1.5; font-size:1rem;">
+            ✨ Create Drive
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. ADMIN VIEW REQUEST DETAILS MODAL -->
+  <div class="modal-overlay" id="admin-view-modal">
+    <div class="modal-card" style="max-width:650px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('admin-view-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#eff6ff; color:#2563eb; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">🛡️
+          ADMIN INSPECTOR</span>
+        <h2 style="font-size:1.4rem; color:#0f172a; margin:0;" id="admin-view-title">Request Details</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Full system metadata and real-time response status for this request.
+      </p>
+
+      <div id="admin-view-details-content" style="display:flex; flex-direction:column; gap:1rem;">
+        <!-- Injected dynamically via AdminManager.openViewModal -->
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
+        <button type="button" class="btn btn-outline" style="flex:1;" onclick="App.closeModal('admin-view-modal')">
+          Close
+        </button>
+        <button type="button" id="admin-view-edit-btn" class="btn btn-secondary"
+          style="flex:1.2; background:#2563eb; color:white; border:none;">
+          ✏️ Edit Request
+        </button>
+        <button type="button" id="admin-view-del-btn" class="btn btn-outline"
+          style="flex:1; color:#ef4444; border-color:#fca5a5;">
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ADMIN EDIT REQUEST MODAL -->
+  <div class="modal-overlay" id="admin-edit-modal">
+    <div class="modal-card" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('admin-edit-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#fef3c7; color:#d97706; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">✏️
+          ADMIN OVERRIDE</span>
+        <h2 style="font-size:1.4rem; color:#0f172a; margin:0;">Edit Help Request</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Modify request properties, assign volunteers, or update resolution status.
+      </p>
+
+      <div id="admin-edit-validation-error"
+        style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; margin-bottom:1rem;">
+      </div>
+
+      <form id="admin-edit-request-form" onsubmit="event.preventDefault(); AdminManager.saveEditRequest(this);">
+        <input type="hidden" name="id" id="edit-req-id">
+
+        <div class="form-group">
+          <label>Request Title <span style="color:#ef4444;">*</span></label>
+          <input type="text" name="title" id="edit-req-title" class="form-control" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Category <span style="color:#ef4444;">*</span></label>
+            <select name="category" id="edit-req-category" class="form-control" required>
+              <option value="Medical Support">🏥 Medical Support</option>
+              <option value="Blood Donation">🩸 Blood Donation</option>
+              <option value="Elderly Assistance">👴 Elderly Assistance</option>
+              <option value="Education Support">📚 Education Support</option>
+              <option value="Food Distribution">🍱 Food Distribution</option>
+              <option value="Environmental Activities">🌱 Environmental Activities</option>
+              <option value="Accessibility Assistance">♿ Accessibility Assistance</option>
+              <option value="Emergency Support">🚨 Emergency Support</option>
+              <option value="College Activities">🎓 College Activities</option>
+              <option value="Other Social Help">🤝 Other Social Help</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Location / Address <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="location_name" id="edit-req-location" class="form-control" required>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Priority <span style="color:#ef4444;">*</span></label>
+            <select name="priority" id="edit-req-priority" class="form-control" required>
+              <option value="EMERGENCY">🚨 EMERGENCY</option>
+              <option value="HIGH">🔴 HIGH</option>
+              <option value="NORMAL">🟡 NORMAL</option>
+              <option value="LOW">🟢 LOW</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Emergency Status <span style="color:#ef4444;">*</span></label>
+            <select name="is_emergency" id="edit-req-is-emergency" class="form-control" required>
+              <option value="true">🚨 Yes (Emergency)</option>
+              <option value="false">⚪ No (Standard)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Status <span style="color:#ef4444;">*</span></label>
+            <select name="status" id="edit-req-status" class="form-control" required>
+              <option value="OPEN">🔵 OPEN</option>
+              <option value="IN_PROGRESS">🟡 IN PROGRESS</option>
+              <option value="COMPLETED">🟢 COMPLETED</option>
+              <option value="CANCELLED">🔴 CANCELLED</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Assigned Volunteer / Leader</label>
+            <input type="text" name="assigned_volunteer" id="edit-req-assigned-vol" class="form-control"
+              placeholder="e.g. Mohan Das (v1)">
+          </div>
+
+          <div class="form-group">
+            <label>Volunteers Needed <span style="color:#ef4444;">*</span></label>
+            <input type="number" name="volunteers_needed" id="edit-req-vol-needed" class="form-control" min="1"
+              max="100" required>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Requester Name</label>
+            <input type="text" name="requester_name" id="edit-req-requester-name" class="form-control"
+              placeholder="Requester Name">
+          </div>
+
+          <div class="form-group">
+            <label>Contact Phone Number</label>
+            <input type="text" name="contact_number" id="edit-req-contact-number" class="form-control"
+              placeholder="+91 9876543210">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description <span style="color:#ef4444;">*</span></label>
+          <textarea name="description" id="edit-req-description" class="form-control" rows="3" required></textarea>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" style="flex:1;" onclick="App.closeModal('admin-edit-modal')">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:1.5; font-size:1rem;">
+            💾 Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5B. ADMIN VIEW MEMBER DETAILS MODAL -->
+  <div class="modal-overlay" id="admin-member-details-modal">
+    <div class="modal-card" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('admin-member-details-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#eff6ff; color:#2563eb; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">👤
+          REGISTERED MEMBER</span>
+        <h2 style="font-size:1.4rem; color:#0f172a; margin:0;" id="admin-member-view-title">Member Profile Details</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Complete registered profile, contact information, service metrics, and system status.
+      </p>
+
+      <div id="admin-member-details-content" style="display:flex; flex-direction:column; gap:1rem;">
+        <!-- Injected dynamically via AdminManager.openMemberDetailsModal -->
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
+        <button type="button" class="btn btn-outline" style="flex:1;"
+          onclick="App.closeModal('admin-member-details-modal')">
+          Close
+        </button>
+        <button type="button" id="admin-member-view-edit-btn" class="btn btn-secondary"
+          style="flex:1.2; background:#2563eb; color:white; border:none;">
+          ✏️ Edit Member
+        </button>
+        <button type="button" id="admin-member-view-del-btn" class="btn btn-outline"
+          style="flex:1; color:#ef4444; border-color:#fca5a5;">
+          🗑️ Delete Member
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5C. ADMIN EDIT MEMBER MODAL -->
+  <div class="modal-overlay" id="admin-member-edit-modal">
+    <div class="modal-card" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('admin-member-edit-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#fef3c7; color:#d97706; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">✏️
+          ADMIN EDIT</span>
+        <h2 style="font-size:1.4rem; color:#0f172a; margin:0;">Edit Registered Member</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Update member details and account role. Note: Passwords are protected and not displayed.
+      </p>
+
+      <div id="admin-member-edit-error"
+        style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; margin-bottom:1rem;">
+      </div>
+
+      <form id="admin-member-edit-form" onsubmit="event.preventDefault(); AdminManager.saveMemberEdit(this);">
+        <input type="hidden" name="id" id="edit-mem-id">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Full Name <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="name" id="edit-mem-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Role <span style="color:#ef4444;">*</span></label>
+            <select name="role" id="edit-mem-role" class="form-control" required>
+              <option value="Student">Student</option>
+              <option value="Volunteer">Volunteer</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Phone Number <span style="color:#ef4444;">*</span></label>
+            <input type="tel" name="phone" id="edit-mem-phone" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address <span style="color:#ef4444;">*</span></label>
+            <input type="email" name="email" id="edit-mem-email" class="form-control" required readonly
+              style="background:#f1f5f9; cursor:not-allowed;">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Account Status <span style="color:#ef4444;">*</span></label>
+            <select name="status" id="edit-mem-status" class="form-control" required>
+              <option value="Active">🟢 Active (Logged In)</option>
+              <option value="Offline">⚪ Offline</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>College / Institution</label>
+            <input type="text" name="college_name" id="edit-mem-college" class="form-control">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Department</label>
+            <input type="text" name="department" id="edit-mem-department" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Year of Study</label>
+            <select name="year_of_study" id="edit-mem-year" class="form-control">
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Postgraduate">Postgraduate</option>
+              <option value="Faculty / Staff">Faculty / Staff</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Skills & Certifications</label>
+          <input type="text" name="skills" id="edit-mem-skills" class="form-control"
+            placeholder="e.g. First Aid, Blood Coordinator, Tutoring">
+        </div>
+
+        <div class="form-group">
+          <label>Emergency Contact</label>
+          <input type="text" name="emergency_contact" id="edit-mem-emergency" class="form-control"
+            placeholder="+91 ...">
+        </div>
+
+        <div class="form-group">
+          <label>Bio / Background</label>
+          <textarea name="bio" id="edit-mem-bio" class="form-control" rows="2"></textarea>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" style="flex:1;"
+            onclick="App.closeModal('admin-member-edit-modal')">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:1.5; font-size:1rem;">
+            💾 Save Member Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. STUDENT / VOLUNTEER PROFILE EDIT MODAL -->
+  <div class="modal-overlay" id="profile-edit-modal">
+    <div class="modal-card" style="max-width:680px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close-btn" onclick="App.closeModal('profile-edit-modal')">✕</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+        <span
+          style="background:#eff6ff; color:#2563eb; font-size:0.75rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:99px;">✏️
+          PROFILE EDITOR</span>
+        <h2 style="font-size:1.4rem; color:#0f172a; margin:0;">Complete / Edit Your Profile</h2>
+      </div>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:1.25rem;">
+        Update your academic information, skills, availability, and areas of interest.
+      </p>
+
+      <div id="profile-edit-validation-error"
+        style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; padding:0.75rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; margin-bottom:1rem;">
+      </div>
+
+      <form id="edit-volunteer-profile-form"
+        onsubmit="event.preventDefault(); VolunteerManager.saveProfileChanges(this);">
+        <input type="hidden" name="id" id="edit-prof-id">
+
+        <!-- 1. Full Name & Role -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Full Name <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="name" id="edit-prof-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Role <span style="color:#ef4444;">*</span></label>
+            <select name="role" id="edit-prof-role" class="form-control" required>
+              <option value="Student">Student</option>
+              <option value="Volunteer">Volunteer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Phone & Email -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Phone Number <span style="color:#ef4444;">*</span></label>
+            <input type="tel" name="phone" id="edit-prof-phone" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address <span style="color:#ef4444;">*</span></label>
+            <input type="email" name="email" id="edit-prof-email" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- 3. Gender & College -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Gender <span style="color:#ef4444;">*</span></label>
+            <select name="gender" id="edit-prof-gender" class="form-control" required
+              onchange="VolunteerManager.onGenderChange(this.value)">
+              <option value="">Select Male / Female</option>
+              <option value="Male">&#9794; Male</option>
+              <option value="Female">&#9792; Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>College / Institution</label>
+            <input type="text" name="college_name" id="edit-prof-college" class="form-control"
+              placeholder="e.g. City Tech University">
+          </div>
+        </div>
+
+        <!-- 3b. Profile Photo Upload -->
+        <div class="form-group"
+          style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:0.5rem;">
+          <label
+            style="font-weight:700; font-size:0.9rem; color:#0f172a; display:block; margin-bottom:0.75rem;">📷
+            Profile Photo</label>
+          <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <img id="edit-prof-avatar-preview" src="" alt="Preview"
+              style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid #cbd5e1; background:#e2e8f0;">
+            <div style="flex:1; min-width:180px;">
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <label for="edit-prof-photo-file" class="btn btn-primary"
+                  style="padding:0.4rem 0.85rem; font-size:0.82rem; cursor:pointer; margin:0;">
+                  📷 Change Profile Photo
+                </label>
+                <input type="file" id="edit-prof-photo-file" accept="image/*" style="display:none;"
+                  onchange="VolunteerManager.onPhotoUpload(this)">
+                <button type="button" class="btn btn-outline"
+                  style="padding:0.4rem 0.85rem; font-size:0.82rem; color:#ef4444; border-color:#fca5a5;"
+                  onclick="VolunteerManager.removeCustomPhoto()">
+                  🗑️ Remove Photo
+                </button>
+              </div>
+              <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.4rem;">Upload a custom photo or remove to use
+                the default gender avatar.</p>
+            </div>
+          </div>
+          <input type="hidden" name="avatar" id="edit-prof-avatar">
+        </div>
+
+        <!-- 4. Department & Year of Study -->
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Department / Major</label>
+            <input type="text" name="department" id="edit-prof-dept" class="form-control"
+              placeholder="e.g. Computer Science & Engineering">
+          </div>
+          <div class="form-group">
+            <label>Year of Study</label>
+            <select name="year_of_study" id="edit-prof-year" class="form-control">
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Post-Graduate">Post-Graduate / Alumni</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 5. Skills & Areas of Interest -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Skills & Certifications</label>
+            <input type="text" name="skills" id="edit-prof-skills" class="form-control"
+              placeholder="e.g. First Aid, CPR, Teaching, Driving">
+          </div>
+          <div class="form-group">
+            <label>Areas of Interest</label>
+            <input type="text" name="areas_of_interest" id="edit-prof-interests" class="form-control"
+              placeholder="e.g. Healthcare, Blood Donation, Environment">
+          </div>
+        </div>
+
+        <!-- 6. Availability & Preferred Help Categories -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Availability Schedule</label>
+            <input type="text" name="availability" id="edit-prof-avail" class="form-control"
+              placeholder="e.g. Weekends, Evenings, On-Call">
+          </div>
+          <div class="form-group">
+            <label>Preferred Help Categories</label>
+            <input type="text" name="preferred_categories" id="edit-prof-categories" class="form-control"
+              placeholder="e.g. Medical Support, Blood Donation">
+          </div>
+        </div>
+
+        <!-- 7. Location & Emergency Contact -->
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>Location / Base Area</label>
+            <input type="text" name="address" id="edit-prof-address" class="form-control"
+              placeholder="e.g. Campus Block B Hostel, University Area">
+          </div>
+          <div class="form-group">
+            <label>Emergency Contact Phone</label>
+            <input type="tel" name="emergency_contact" id="edit-prof-emerg" class="form-control"
+              placeholder="+91 9876543299">
+          </div>
+        </div>
+
+        <!-- 8. Short Bio -->
+        <div class="form-group">
+          <label>Short Bio / Volunteer Statement</label>
+          <textarea name="bio" id="edit-prof-bio" class="form-control" rows="3"
+            placeholder="Tell the community about your volunteering motivation and experience..."></textarea>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" style="flex:1;" onclick="App.closeModal('profile-edit-modal')">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:1.5; font-size:1rem;">
+            💾 Save / Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. CUSTOM ALERT / CONFIRM / CERTIFICATE MODAL CONTAINER -->
+  <div class="modal-overlay" id="custom-alert-modal">
+    <div class="modal-card" id="custom-alert-modal-body">
+      <!-- Injected via JavaScript -->
+    </div>
+  </div>
+
+  <!-- 5. LOGIN MODAL -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="App.closeModal('login-modal')">✕</button>
+      <h2 style="font-size:1.5rem; margin-bottom:0.5rem; color:#0f172a;">🔐 Login to HELPHUB</h2>
+      <p style="color:#64748b; font-size:0.9rem; margin-bottom:1.5rem;">Access your volunteer profile or organization
+        dashboard.</p>
+
+      <form
+        onsubmit="event.preventDefault(); App.closeModal('login-modal'); App.showSuccessAlert('Logged In', 'Welcome back, Mohan Das!');">
+        <div class="form-group">
+          <label>Enter Your Email Address</label>
+          <input type="email" class="form-control" placeholder="Enter your email address" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" class="form-control" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; font-size:1rem;">
+          SIGN IN
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       FOOTER
+       ========================================================= -->
+  <footer
+    style="background:#0f172a; color:#94a3b8; padding:3rem 2rem 2rem 2rem; margin-top:4rem; border-top:1px solid #1e293b;">
+    <div
+      style="max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:2rem;">
+      <div>
+        <h3 style="color:white; font-size:1.4rem; margin-bottom:0.75rem;">🤝 HELPHUB</h3>
+        <p style="font-size:0.85rem; line-height:1.6;">
+          Connecting people in need with students and volunteers who are ready to make a difference.
+        </p>
+      </div>
+
+      <div>
+        <h4 style="color:white; font-size:1rem; margin-bottom:0.75rem;">Quick Links</h4>
+        <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.5rem; font-size:0.85rem;">
+          <li><a href="#" onclick="App.showSection('home')">Home</a></li>
+          <li><a href="#" onclick="App.showSection('requests')">Active Help Requests</a></li>
+          <li><a href="#" onclick="App.showSection('volunteer')">Volunteer Dashboard</a></li>
+          <li><a href="#" onclick="App.showSection('impact')">Impact Analytics</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color:white; font-size:1rem; margin-bottom:0.75rem;">Key Innovation</h4>
+        <p style="font-size:0.85rem; line-height:1.6;">
+          🟢 <strong>Safety Arrival Notification:</strong> Real-time safety status confirmation when volunteers reach
+          help locations.
+        </p>
+      </div>
+    </div>
+
+    <div
+      style="max-width:1200px; margin:2rem auto 0 auto; padding-top:1.5rem; border-top:1px solid #1e293b; text-align:center; font-size:0.8rem; color:#64748b;">
+      © 2026 HELPHUB Platform. “When someone needs help, the right volunteers should know, respond, reach safely, and
+      help together.”
+    </div>
+  </footer>
+
+  <!-- Application Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/requests.js"></script>
+  <script src="js/volunteer.js"></script>
+  <script src="js/safety.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/impact.js"></script>
+  <script src="js/college.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/certificate.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+
+</html>
